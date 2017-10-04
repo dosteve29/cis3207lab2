@@ -11,7 +11,7 @@ int clr();
 int dir(char **args);
 int print_environ();
 int echo(char **args);
-int help();
+int help(char **args);
 int stopeverythinguntilenter();
 int quit();
 int hasLeftRedirection(char ** args);
@@ -28,7 +28,7 @@ char *builtin_cmds[] = {
     "quit"
 };
 
-int (*builtin_cmd[])(char **) = {
+int (*builtin_cmd[])(char ** args) = {
     &cd,
     &clr,
     &dir,
@@ -47,16 +47,18 @@ int cd(char **args){
     return 1;
 }
 int clr(){
-    int i;
-    for (i = 0; i < 1000; i++){
-        printf("\n");
-    }
+    system("clear");
     return 1;
 }
 int dir(char **args){
     return 1;
 }
 int print_environ(){
+    int i;
+    for (i = 0; __environ[i] != NULL; i++){
+        printf("%s\n", __environ[i]);
+    }
+
     return 1;
 }
 int echo(char **args){
@@ -135,10 +137,47 @@ int echo(char **args){
     }
     return 1;
 }
-int help(){
+
+int help(char ** args){
+    int stdout_copy = dup(STDOUT_FILENO);
+    int right, out;
+    int c;
+    if ((right = hasRightRedirection(args))){
+        if ((out = open(args[right + 1], O_WRONLY | O_TRUNC | O_CREAT, 0666)) < 0){
+            printf("Error in opening output file!\n");
+            return 1;
+        } 
+        dup2(out, STDOUT_FILENO);
+        FILE * fp = fopen("readme", "r");
+        while(1){
+            c = fgetc(fp);
+            if (feof(fp))
+                break;
+            printf("%c", c);
+        }
+        fclose(fp); 
+        close(out);
+        dup2(stdout_copy, STDOUT_FILENO);
+        close(stdout_copy);
+    } 
+    else{
+        FILE * fp = fopen("readme", "r");
+        while(1){
+            c = fgetc(fp);
+            if (feof(fp))
+                break;
+            printf("%c", c);
+        }
+        fclose(fp); 
+    }
     return 1;
 }
+
 int stopeverythinguntilenter(){
+    char c;
+    do{
+       c = getchar(); 
+    }while(c != '\n');
     return 1;
 }
 

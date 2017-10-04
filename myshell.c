@@ -13,12 +13,25 @@ char ** parseLine(char * line);
 int doStuff(char ** args);
 
 extern char ** environ;
+
 int numberOfArguments;
 
 int main(int argc, char ** argv){
     char * line;
     char ** args;
     int status = 1;
+
+    if (putenv("SHELL=/home/steve/cis3207lab2/myshell")){
+        printf("putenv() error\n");
+    }
+    if (putenv("PARENT=/home/steve/cis3207lab2/myshell")){
+        printf("putenv() error\n");
+    }
+
+    if (argc > 1){
+        printf("There is batchfile!\n");
+        return 0;
+    }
 
     while(status){
         printPrompt();
@@ -66,9 +79,11 @@ char ** parseLine(char * line){
 }
 
 int doStuff(char ** args){
+    //if the user simply enters, then return nothing
     if (args[0] == NULL){
         return 1;
     }
+
     /* List redirection elements here */
     int left = hasLeftRedirection(args);
     int right = hasRightRedirection(args);
@@ -77,32 +92,35 @@ int doStuff(char ** args){
     int background = hasAmpersand(args);
     int builtin = isBuiltin(args);
 
-    /* printf("Left: %d\n", left); */
-    /* printf("right: %d\n", right); */
-    /* printf("append: %d\n", append); */
-    /* printf("pipe: %d\n", pipe); */
-    /* printf("background: %d\n", background); */
-    /* printf("builtin: %d\n", builtin); */
-
-    //if the user simply enters, then return nothing
-    
 
     if (pipe){ //pipe is handled first
-        printf("pipe!\n");
+        char * leftArgs[pipe + 1];
+        char * rightArgs[numberOfArguments - pipe];
+        
+        int i;
+        for (i = 0; i < pipe; i++){
+            leftArgs[i] = args[i];
+        }  
+        for (i = pipe + 1; i < numberOfArguments; i++){
+            rightArgs[i - pipe - 1] = args[i];
+        }
+
+        leftArgs[pipe] = "\0";
+        rightArgs[numberOfArguments - pipe] = "\0";
+
         return 1;
     }
     else if (builtin >= 0){ //builtin command
-        printf("Built in !\n");
         return (*builtin_cmd[builtin])(args);
     }
     else{ //program invocation
         pid_t cpid;
-        if ( (cpid = fork()) == -1){
+        if ((cpid = fork()) == -1){
             return 1;
         }
         else if (cpid == 0){ //child process
             if ((execvp(args[0], args)) < 0){
-                printf("program not found!\n");
+                printf("Error!\n");
                 return 0;
             }
         }
