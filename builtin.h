@@ -66,40 +66,73 @@ int echo(char **args){
     int left, right;
     left = hasLeftRedirection(args);
     right = hasRightRedirection(args);
-    if (left){
-        in = open(args[left + 1], O_RDONLY);
-        if (in < 0){
-            printf("Error!\n");
+    
+    if (left && right){
+        if ((in = open(args[left + 1], O_RDONLY)) < 0){
+            printf("Error in opening input file!\n");
+            return 1;
         }
         dup2(in, STDIN_FILENO);
-    }
-    if (right){
-        out = open(args[right + 1], O_WRONLY | O_TRUNC | O_CREAT);
-        if (out < 0)
-            printf("Error!\n");
+        if ((out = open(args[right + 1], O_WRONLY | O_TRUNC | O_CREAT)) < 0){
+            printf("Error in opening output file!\n");
+            return 1;
+        }
         dup2(out, STDOUT_FILENO);
-    }
 
-    printf("left: %d\n", left);
-    printf("right: %d\n", right);
+        char c;
+        while ((c = getchar()) != EOF){
+            putchar(c);
+        }
+        close(in);
+        dup2(stdin_copy, STDIN_FILENO);
+        close(stdin_copy);
 
-    if (left){
-        printf("left redirection\n");
+        close(out);
+        dup2(stdout_copy, STDOUT_FILENO);
+        close(stdout_copy);
     }
-    else if (right){
-        printf("right redirection\n");
+    else if (left && !right){
+        if ((in = open(args[left + 1], O_RDONLY)) < 0){
+            printf("Error in opening input file!\n");
+            return 1;
+        }
+        dup2(in, STDIN_FILENO);
+        
+        char c;
+        while ((c = getchar()) != EOF){
+            putchar(c);
+        }
+
+        close(in);
+        dup2(stdin_copy, STDIN_FILENO);
+        close(stdin_copy);
+    }
+    else if (!left && right){
+        if ((out = open(args[right + 1], O_WRONLY | O_TRUNC | O_CREAT)) < 0){
+            printf("Error in opening output file!\n");
+            return 1;
+        }
+        dup2(out, STDOUT_FILENO);
+
+        int i = 1;
+        while (i < right){
+            printf("%s ", args[i]);
+            i++;
+        }
+        printf("\n");
+
+        close(out);
+        dup2(stdout_copy, STDOUT_FILENO);
+        close(stdout_copy);
     }
     else{
-        printf("no redirection\n");
+        int i = 1;
+        while (args[i] != NULL){
+            printf("%s ", args[i]);
+            i++;
+        } 
+        printf("\n");
     }
-
-    close(in);
-    dup2(stdin_copy, 0);
-    close(stdin_copy);
-
-    close(out);
-    dup2(stdout_copy, 1);
-    close(stdout_copy);
     return 1;
 }
 int help(){
