@@ -62,10 +62,16 @@ char ** parseLine(char * line){
 }
 
 int doStuff(char ** args){
-    if (args[0] == NULL)
-        return 1;
-        
     int i;
+    if (args[0] == NULL){
+        return 1;
+    }
+
+    if (hasPipe(args)){
+        printf("There is pipe!\n");
+        return 1;
+    }
+
     for (i = 0; i < numberOfInternalCmds(); i++){
         if (strcmp(args[0], builtin_cmds[i]) == 0){
             return (*builtin_cmd[i])(args);

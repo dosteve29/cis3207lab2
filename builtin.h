@@ -46,6 +46,10 @@ int cd(char **args){
     return 1;
 }
 int clr(){
+    int i;
+    for (i = 0; i < 1000; i++){
+        printf("\n");
+    }
     return 1;
 }
 int dir(char **args){
@@ -61,7 +65,7 @@ int echo(char **args){
     int left, right;
     left = hasLeftRedirection(args);
     right = hasRightRedirection(args);
-    if (left > 0){
+    if (left){
         in = open("inputfile", O_RDONLY);
         if (in < 0)
             printf("Error!\n");
@@ -70,7 +74,7 @@ int echo(char **args){
         dup2(stdin_copy, 0);
         close(stdin_copy);
     }
-    if (right > 0){
+    if (right){
         out = open("outputfile", O_WRONLY | O_TRUNC | O_CREAT);
         if (out < 0)
             printf("Error!\n");
@@ -107,7 +111,7 @@ int hasLeftRedirection(char ** args){
         i++;
     }
 
-    return -1;
+    return 0;
 }
 
 int hasRightRedirection(char ** args){
@@ -118,6 +122,40 @@ int hasRightRedirection(char ** args){
         i++;
     }
 
-    return -1;
+    return 0;
 
+}
+
+int hasAppend(char ** args){
+    int i = 1;
+    while (args[i] != NULL){
+        if (strcmp(args[i], ">>") == 0)
+            return i;
+        i++;
+    }
+
+    return 0;
+
+}
+
+int hasPipe(char ** args){
+    int i = 1;
+    while (args[i] != NULL){
+        if (strcmp(args[i], "|") == 0)
+            return i;
+        i++;
+    }
+
+    return 0;
+}
+
+int hasAmpersand(char ** args){
+    int i = 1;
+    while (args[i] != NULL){
+        if (strcmp(args[i], "&") == 0)
+            return i;
+        i++;
+    }
+
+    return 0;
 }
