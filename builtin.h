@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -8,7 +9,7 @@
 int cd(char **args);
 int clr();
 int dir(char **args);
-int environ();
+int print_environ();
 int echo(char **args);
 int help();
 int stopeverythinguntilenter();
@@ -31,7 +32,7 @@ int (*builtin_cmd[])(char **) = {
     &cd,
     &clr,
     &dir,
-    &environ,
+    &print_environ,
     &echo,
     &help,
     &stopeverythinguntilenter,
@@ -55,7 +56,7 @@ int clr(){
 int dir(char **args){
     return 1;
 }
-int environ(){
+int print_environ(){
     return 1;
 }
 int echo(char **args){
@@ -66,30 +67,39 @@ int echo(char **args){
     left = hasLeftRedirection(args);
     right = hasRightRedirection(args);
     if (left){
-        in = open("inputfile", O_RDONLY);
-        if (in < 0)
+        in = open(args[left + 1], O_RDONLY);
+        if (in < 0){
             printf("Error!\n");
+        }
         dup2(in, STDIN_FILENO);
-        close(in);
-        dup2(stdin_copy, 0);
-        close(stdin_copy);
     }
     if (right){
-        out = open("outputfile", O_WRONLY | O_TRUNC | O_CREAT);
+        out = open(args[right + 1], O_WRONLY | O_TRUNC | O_CREAT);
         if (out < 0)
             printf("Error!\n");
         dup2(out, STDOUT_FILENO);
-        close(out);
-        dup2(stdout_copy, 1);
-        close(stdout_copy);
     }
-    int i = 1;
-    while (args[i] != NULL){
-        printf("%s ", args[i]);
-        i++;
+
+    printf("left: %d\n", left);
+    printf("right: %d\n", right);
+
+    if (left){
+        printf("left redirection\n");
     }
-    
-    printf("\n");
+    else if (right){
+        printf("right redirection\n");
+    }
+    else{
+        printf("no redirection\n");
+    }
+
+    close(in);
+    dup2(stdin_copy, 0);
+    close(stdin_copy);
+
+    close(out);
+    dup2(stdout_copy, 1);
+    close(stdout_copy);
     return 1;
 }
 int help(){
@@ -159,3 +169,16 @@ int hasAmpersand(char ** args){
 
     return 0;
 }
+
+int isBuiltin(char **args){
+    int i = 0;
+    for (i = 0; i < numberOfInternalCmds(); i++){
+        if (strcmp(args[0], builtin_cmds[i]) == 0){
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+
