@@ -24,7 +24,7 @@ int main(int argc, char ** argv){
     if (putenv("SHELL=/home/steve/cis3207lab2/myshell")){
         printf("putenv() error\n");
     }
-    if (putenv("PARENT=/home/steve/cis3207lab2/myshell")){
+    if (putenv("PARENT=/home/steve/cis3207lab2/")){
         printf("putenv() error\n");
     }
 
@@ -47,7 +47,9 @@ int main(int argc, char ** argv){
 }
 
 void printPrompt(){
-    printf("%s: ", "Prompt"); 
+    char dirName[1024];
+    getcwd(dirName, sizeof(dirName));
+    printf("%s%c ", dirName, '>');
 }
 
 char * readLine(){
@@ -120,7 +122,7 @@ int doStuff(char ** args){
         }
         else if (cpid == 0){ //child process
             if ((execvp(args[0], args)) < 0){
-                printf("Error!\n");
+                printf("Program not found!\n");
                 return 0;
             }
         }

@@ -5,6 +5,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <string.h>
+#include <dirent.h>
 
 int cd(char **args);
 int clr();
@@ -44,6 +45,29 @@ int numberOfInternalCmds(){
 }
 
 int cd(char **args){
+    char dirName[1024];
+    if (args[1] == NULL){ //no argument. 
+        if (getcwd(dirName, sizeof(dirName)) == NULL){
+            printf("Error in getcwd()!\n");
+            return 1;
+        }
+        printf("No directory change\n");
+        printf("Current working directory: %s\n", dirName);
+    }
+    else{ //there is argument
+        strcpy(dirName, args[1]);
+        if (chdir(dirName) < 0){
+            printf("Directory does not exist!\n");
+            return 1;
+        }
+        if (getcwd(dirName, sizeof(dirName)) == NULL){
+            printf("Erro in getcwd()!\n");
+            return 1;
+        }
+        if (setenv("PWD", dirName, 1) < 0){
+            printf("setenv() error!\n");
+        }
+    }
     return 1;
 }
 int clr(){
@@ -51,6 +75,44 @@ int clr(){
     return 1;
 }
 int dir(char **args){
+    DIR * dir;
+    struct dirent * dent;
+    char dirName[1024];
+    if (args[1] == NULL){ //no argument. print current directory
+        if (getcwd(dirName, sizeof(dirName)) == NULL){
+            printf("Error in getcwd()!\n"); 
+            return 1;
+        }
+        dir = opendir(dirName);
+        while ( (dent=readdir(dir)) != NULL){
+            if ( !strcmp(dent->d_name, ".") || !strcmp(dent->d_name, "..")){
+
+            }
+            else{
+                printf(dent->d_name);
+                printf("\n");
+            }
+        } 
+        closedir(dir);
+    }
+
+    else{ //there is argument. different directory
+        strcpy(dirName, args[1]);
+        if ( (dir = opendir(dirName)) == NULL){
+            printf("No directory exists!\n");
+            closedir(dir);
+            return 1;
+        }
+        while ( (dent=readdir(dir)) != NULL){
+            if ( !strcmp(dent->d_name, ".") || !strcmp(dent->d_name, "..")){
+            }
+            else{
+                printf(dent->d_name);
+                printf("\n");
+            }
+        }
+        closedir(dir);
+    }
     return 1;
 }
 int print_environ(){
@@ -139,37 +201,56 @@ int echo(char **args){
 }
 
 int help(char ** args){
-    int stdout_copy = dup(STDOUT_FILENO);
-    int right, out;
-    int c;
-    if ((right = hasRightRedirection(args))){
-        if ((out = open(args[right + 1], O_WRONLY | O_TRUNC | O_CREAT, 0666)) < 0){
-            printf("Error in opening output file!\n");
-            return 1;
-        } 
-        dup2(out, STDOUT_FILENO);
-        FILE * fp = fopen("readme", "r");
-        while(1){
-            c = fgetc(fp);
-            if (feof(fp))
-                break;
-            printf("%c", c);
-        }
-        fclose(fp); 
-        close(out);
-        dup2(stdout_copy, STDOUT_FILENO);
-        close(stdout_copy);
-    } 
-    else{
-        FILE * fp = fopen("readme", "r");
-        while(1){
-            c = fgetc(fp);
-            if (feof(fp))
-                break;
-            printf("%c", c);
-        }
-        fclose(fp); 
+    // int stdout_copy = dup(STDOUT_FILENO);
+    // int right, out;
+    // int c;
+    // if ((right = hasRightRedirection(args))){
+    //     if ((out = open(args[right + 1], O_WRONLY | O_TRUNC | O_CREAT, 0666)) < 0){
+    //         printf("Error in opening output file!\n");
+    //         return 1;
+    //     } 
+    //     dup2(out, STDOUT_FILENO);
+    //     FILE * fp = fopen("readme", "r");
+    //     while(1){
+    //         c = fgetc(fp);
+    //         if (feof(fp))
+    //             break;
+    //         printf("%c", c);
+    //     }
+    //     fclose(fp); 
+    //     close(out);
+    //     dup2(stdout_copy, STDOUT_FILENO);
+    //     close(stdout_copy);
+    // } 
+    // else{
+    //     FILE * fp = fopen("readme", "r");
+    //     while(1){
+    //         c = fgetc(fp);
+    //         if (feof(fp))
+    //             break;
+    //         printf("%c", c);
+    //     }
+    //     fclose(fp); 
+    // }
+    char helpDir[1024];
+    char * directory = getenv("PARENT");
+    char * helpfile = "readme";
+    memset(helpDir, '\0', sizeof(helpDir));
+    strcpy(helpDir, directory);
+    strcat(helpDir, helpfile);
+
+    FILE * fp = fopen(helpDir, "r");
+    if (fp == NULL){
+        printf("Error opening the file!\n");
+        return 1;
     }
+
+    char c;
+    while ( (c = fgetc(fp)) != EOF){
+        printf("%c", c);
+    }
+    
+    fclose(fp);
     return 1;
 }
 
