@@ -90,46 +90,138 @@ int doStuff(char ** args){
     int left = hasLeftRedirection(args);
     int right = hasRightRedirection(args);
     int append = hasAppend(args);
-    int pipe = hasPipe(args);
+    int bar = hasPipe(args);
     int background = hasAmpersand(args);
-    int builtin = isBuiltin(args);
 
 
-    if (pipe){ //pipe is handled first
-        char * leftArgs[pipe + 1];
-        char * rightArgs[numberOfArguments - pipe];
-        
+    if (bar){ //pipe is handled first
+        printf("Pipe: %d\n", bar);
+        char * leftArgs[bar + 1];
+        char * rightArgs[numberOfArguments - bar];
+        memset(leftArgs, '\0', sizeof(leftArgs));
+        memset(rightArgs, '\0', sizeof(rightArgs));
+
         int i;
-        for (i = 0; i < pipe; i++){
+        for (i = 0; i < bar; i++){
             leftArgs[i] = args[i];
         }  
-        for (i = pipe + 1; i < numberOfArguments; i++){
-            rightArgs[i - pipe - 1] = args[i];
+        for (i = bar + 1; i < numberOfArguments; i++){
+            rightArgs[i - bar - 1] = args[i];
         }
 
-        leftArgs[pipe] = "\0";
-        rightArgs[numberOfArguments - pipe] = "\0";
-
-        return 1;
-    }
-    else if (builtin >= 0){ //builtin command
-        return (*builtin_cmd[builtin])(args);
-    }
-    else{ //program invocation
-        pid_t cpid;
-        if ((cpid = fork()) == -1){
-            return 1;
+        /* testing for correct left and right args */
+        printf("Left: ");
+        for (i = 0; i < bar; i++){
+            printf("%s ", leftArgs[i]);
         }
-        else if (cpid == 0){ //child process
-            if ((execvp(args[0], args)) < 0){
-                printf("Program not found!\n");
-                return 0;
+        printf("\n");
+        printf("Right: ");
+        for (i = 0; i < numberOfArguments - bar - 1; i++){
+            printf("%s ", rightArgs[i]);
+        }
+        printf("\n");
+        
+        int fd[2];
+        pid_t left;
+        pid_t right;
+
+        if (pipe(fd) == -1){
+            printf("Error creating pipe!\n");
+            return 0;
+        }
+        
+        if ((left = fork()) == -1){
+            printf("Error in fork()1!\n");
+            return 0;
+        }
+        else if (left == 0){ //left writes to the pipe
+            close(STDOUT_FILENO);
+            dup2(fd[1], STDOUT_FILENO);
+            close(fd[0]);
+            int builtin = isBuiltin(leftArgs);
+            if (builtin >= 0){
+                builtin_cmd[builtin](leftArgs);
+                exit(0);
             }
+            else{
+                execvp(leftArgs[0], leftArgs);
+                printf("Left Program: %s does not exist!\n", leftArgs[0]);
+                exit(0);
+            } 
         }
         else{
-            waitpid(cpid, NULL, 0);
-            return 1;
+            if ((right = fork()) == -1){
+                printf("Error in fork()2!\n");
+                return 0;
+            }
+            else if (right == 0){
+                close(STDIN_FILENO);
+                dup2(fd[0], STDIN_FILENO);
+                close(fd[1]);
+                execvp(rightArgs[0], rightArgs);
+                printf("Right Program: %s not found!\n", rightArgs[0]);
+                exit(0);
+            }
+            else{ //shell process
+                waitpid(left, NULL, 0);
+                close(fd[1]);
+                waitpid(right, NULL, 0);
+                close(fd[0]);
+                return 1;
+            }
         }
-        return 1;
     }
+    else if(left || right || append){
+        printf("Left: %d\n", left);
+        printf("Right: %d\n", right);
+        printf("Append: %d\n", append);
+
+        
+    }
+    else if (background){
+        printf("Background: %d\n", background);
+        int builtin = isBuiltin(args);
+        if (builtin >= 0){
+            return (*builtin_cmd[builtin])(args); 
+        }
+        else{
+            pid_t pid;
+
+            if ((pid = fork()) < 0){
+                printf("Fork failed!\n");
+                exit(0);
+            }
+            else if (pid == 0){
+                execvp(args[0], args);
+                printf("No program found!\n");
+            }
+            else{
+                return 1;
+            }
+        }
+    }
+    else{
+        int builtin = isBuiltin(args);
+        if (builtin >= 0){
+            return (*builtin_cmd[builtin])(args);
+        }
+        else{
+            pid_t pid;
+
+            if ((pid = fork()) < 0){
+                printf("Fork failed!\n");
+                exit(0);
+            }
+            else if (pid == 0){
+                execvp(args[0], args);
+                printf("No program found!\n");    
+                exit(0);
+            }
+            else{
+                waitpid(pid, NULL, 0);
+                return 1;
+            }
+        }
+    }
+    return 1;
 }
