@@ -1,0 +1,90 @@
+[HOW TO USE MYSHELL]
+
+myshell is a simple shell to launch some internal and external programs. There are two ways to use myshell: batch file or user input.
+
+The batch file method uses another file, which contains instructions separated by newlines, to execute programs.
+For example, if the batch file contains,
+
+    dir
+    environ
+    help
+
+then myshell will execute dir, environ, and help and exit the shell. To use the batch file method, launch myshell like this: ./myshell <batch file name>.
+Replace the <batch file name> with your batch file name without the < >. 
+
+The user input method uses the keyboard in order to enter commands. Commands are continuously inputted from the user until kill signal is entered or quit is used.
+To use the user input method, launch myshell like this: ./myshell. Notice how the user input method does not contain any arguments.
+
+Here are the list of internal commands:
+    cd <directory>
+    clr
+    dir <directory>
+    environ
+    echo <comment>
+    help
+    pause
+    quit
+
+cd <directory>:
+changes directory to the specified <directory> argument. If a <directory> is not specified or does not exist, then the current working directory is not changed, and the user is notified of this.
+
+clr:
+clears the screen so that the prompt is at the top of the window.
+
+dir <directory>:
+lists the contents of the <directory>. If a <directory> is not specified, then the contents of current working directory is listed. If the <directory> does not exist, then an error is shown.
+
+environ:
+Prints out the environment variables of myshell. Please refer to "Program Environment" for further details.
+
+echo <comment>:
+Repeats the <comment> to myshell.
+
+help:
+This document is printed to myshell.
+
+pause:
+All keyboard input takes no effect until <Enter> is pressed.
+
+quit:
+Exits myshell.
+
+
+
+
+
+I/O Redirection
+There are five elements of I/O Redirection: <, >, >>, &, |.
+
+<
+The left redirection element is used to redirect the input of the program to the specified file.
+Example: wc < inputfile
+Here, the wc is the "word count" program. The wc takes an input and prints out the word count of the input. Here, the input is redirected with < so that wc will receive its input from the inputfile, not the keyboard.
+
+>
+The right redirection element is used to redirect the output of the program to the specified file.
+Example: ls > outputfile.
+Here, the ls is the list program. The ls prints the contents of the directory. Usually ls will print to the screen, but the right redirection changes the output of ls from screen to the outputfile.
+> element creates the outputfile if it does not exist or truncates the outputfile if it exists.
+
+>>
+The append redirection element is used to redirect the output of the program to the specified file.
+Example: ls >> outputfile.
+As seen in the > example, ls is the list program. Here, ls prints the contents of the directory, but instead of truncating the contents of the file, the printed contents of the directory is appended to the file.
+
+&
+The background redirection element is used to keep the program running in the background without disrupting the foreground of myshell.
+Example: dir &
+Here, the dir command lists the content of the directory. However, this process is done in the background and will not print anything to myshell screen. 
+
+|
+The pipe redirection element is used to take the output of one program and use it as input of another program.
+Example: prog1 | prog2
+Here, the prog1 uses standard output to print out something. Also, the prog2 uses standard input to read something. By using the pipe, the two programs can be called to receive and send data over different processes.
+
+Program Environment
+Since this is a prototype of a full-fledged shell, the environment variable inherits the environment variable of the shell which myshell was called from.
+Environment variables are used to give values to settings of myshell, such as the shell location, parent directory, and the current working directory.
+The environment variable gives several helpful informations about myshell.
+
+Myshell assumes that |, &, and (>, <, >>) will not be mixed into a command line together. 
