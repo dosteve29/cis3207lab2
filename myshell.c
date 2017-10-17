@@ -30,16 +30,31 @@ int main(int argc, char ** argv){
     //setting environment variables for portability
     char shellName[1024];
     char parent[1024];
+    char pathedit[sizeof(size_t)];
+
+    //set all the array elements to '\0'
     memset(parent, '\0', sizeof(parent));
     memset(shellName, '\0', sizeof(shellName));
+    memset(pathedit, '\0', sizeof(pathedit));
 
+    //set the parent variable to the current working directory (where myshell executable is)
     getcwd(parent, sizeof(parent));
     setenv("PARENT", parent, 1);
 
+    //myshell is appended after the current working directory
     strcpy(shellName, parent);
     strcat(shellName, "/myshell");
 
+    //set the SHELL environment variable
     setenv("SHELL", shellName, 1);
+
+    //get the PATH and append the current working directory so that executables within the directory will execute
+    strcpy(pathedit, getenv("PATH"));
+    strcat(pathedit, ":");
+    strcat(pathedit, parent);
+
+    //set the PATH variable with the new pathedit variable
+    setenv("PATH", pathedit, 1);
 
     //if there is batchfile: ./myshell batchfile
     if (argc > 1){
@@ -298,7 +313,6 @@ int doStuff(char ** args){
     }
     //background & 
     else if (background){
-        printf("Background: %d\n", background); //print the background symbol indicator
         char * newArgs[numberOfArguments]; //prepare space for appropriate arguments
         memset(newArgs, '\0', sizeof(newArgs)); //set array spaces as null
         int i;
@@ -319,13 +333,16 @@ int doStuff(char ** args){
         }
         else{ //if not built-in, use fork and exec
             pid_t pid;
+            int tempFile; //the background process will write to this file
 
             if ((pid = fork()) < 0){
                 printf("Fork failed!\n");
                 exit(0);
             }
             else if (pid == 0){ //child process
+                tempFile = open("tempfile", O_CREAT | O_WRONLY, 0777); //create and write to the file with correct permissions
                 close(STDOUT_FILENO); //close stdout so nothing prints to shell
+                dup2(tempFile, STDOUT_FILENO); //make the stdout to this file
                 execvp(args[0], newArgs); //launch the program
                 printf("No program found!\n");
             }
